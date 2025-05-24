@@ -5,7 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let loadedShortcuts = {}; // To store the shortcuts loaded from storage
 
     // --- Function to handle navigation ---
-    function navigateToShortcut(key) {
+    function navigateToShortcut(key, openInNewTab = false) {
       if (loadedShortcuts.hasOwnProperty(key)) {
         const targetUrl = loadedShortcuts[key].url;
 
@@ -14,24 +14,34 @@ document.addEventListener('DOMContentLoaded', () => {
           return;
         }
 
-        console.log(`Activating shortcut '${key}'. Navigating to: ${targetUrl}`);
+        console.log(`Activating shortcut '${key}'. Navigating to: ${targetUrl}. New tab: ${openInNewTab}`);
 
-        chrome.runtime.sendMessage(
-          {
-            action: 'navigate',
-            url: targetUrl
-          },
-          (response) => {
+        if (openInNewTab) {
+          chrome.tabs.create({ url: targetUrl }, (tab) => {
             if (chrome.runtime.lastError) {
-              console.error("Error sending navigation message:", chrome.runtime.lastError.message);
-            } else if (response && response.success) {
-              console.log("Navigation message sent successfully.");
+              console.error("Error creating new tab:", chrome.runtime.lastError.message);
             } else {
-              console.warn("Navigation message may not have been processed successfully by background.", response);
+              console.log("New tab created successfully:", tab);
             }
-          }
-        );
-        window.close(); // Close the popup
+          });
+        } else {
+          chrome.runtime.sendMessage(
+            {
+              action: 'navigate',
+              url: targetUrl
+            },
+            (response) => {
+              if (chrome.runtime.lastError) {
+                console.error("Error sending navigation message:", chrome.runtime.lastError.message);
+              } else if (response && response.success) {
+                console.log("Navigation message sent successfully.");
+              } else {
+                console.warn("Navigation message may not have been processed successfully by background.", response);
+              }
+            }
+          );
+        }
+        window.close(); // Close the popup after initiating navigation
       }
     }
 
@@ -55,8 +65,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
           const itemDiv = document.createElement('div');
           itemDiv.className = 'shortcut-item';
-          // Store the key on the element itself for easy access in the click listener
-          itemDiv.dataset.shortcutKey = key;
+          itemDiv.dataset.shortcutKey = key; // Store key for click listener
 
           const nameSpan = document.createElement('span');
           nameSpan.className = 'shortcut-name';
@@ -71,9 +80,9 @@ document.addEventListener('DOMContentLoaded', () => {
           itemDiv.appendChild(keySpan);
           shortcutsGrid.appendChild(itemDiv);
 
-          // Add click listener to the shortcut item
+          // Add click listener to the shortcut item (opens in current tab by default)
           itemDiv.addEventListener('click', () => {
-            navigateToShortcut(itemDiv.dataset.shortcutKey);
+            navigateToShortcut(itemDiv.dataset.shortcutKey, false); // false for openInNewTab
           });
         }
       }
@@ -92,11 +101,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Listen for key presses within the popup ---
     document.addEventListener('keydown', (event) => {
-      if (event.ctrlKey || event.altKey || event.metaKey) {
+      // Ignore if the key pressed is a modifier key itself (e.g., just pressing "Control")
+      if (["Shift", "Control", "Alt", "Meta"].includes(event.key)) {
         return;
       }
+
       const pressedKey = event.key.toLowerCase();
-      navigateToShortcut(pressedKey); // Use the common navigation function
+      let openInNewTab = false;
+
+      // Case 1: Ctrl + Key (for new tab)
+      // Ensure ONLY Ctrl is the main modifier (not Ctrl+Shift, Ctrl+Alt, etc.)
+      if (event.ctrlKey && !event.altKey && !event.metaKey && !event.shiftKey) {
+        openInNewTab = true;
+        navigateToShortcut(pressedKey, openInNewTab);
+      }
+      // Case 2: Key only (for current tab)
+      // Ensure NO modifiers are pressed
+      else if (!event.ctrlKey && !event.altKey && !event.metaKey && !event.shiftKey) {
+        openInNewTab = false;
+        navigateToShortcut(pressedKey, openInNewTab);
+      }
+      // Otherwise, if other combinations of modifiers are pressed, do nothing.
+      // This prevents conflicts with browser/OS shortcuts like Ctrl+Shift+T, etc.
     });
 
     // --- Listen for storage changes ---
