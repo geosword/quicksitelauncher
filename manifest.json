@@ -1,0 +1,31 @@
+{
+    "name": "Quick URL Navigator",
+    "description": "Navigate to predefined URLs with keyboard shortcuts",
+    "version": "1.0",
+    "manifest_version": 3,
+    "background": {
+      "service_worker": "background.js"
+    },
+    "action": {
+      "default_popup": "popup.html",
+      "default_icon": {
+        "16": "images/icon16.png",
+        "48": "images/icon48.png",
+        "128": "images/icon128.png"
+      }
+    },
+    "options_page": "options.html",
+    "permissions": [
+      "storage",
+      "tabs",
+      "activeTab"
+    ],
+    "commands": {
+      "open-popup": {
+        "suggested_key": {
+          "default": "Ctrl+M"
+        },
+        "description": "Open URL navigation popup"
+      }
+    }
+  }
