@@ -4,6 +4,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const shortcutsGrid = document.getElementById('shortcuts-grid');
     let loadedShortcuts = {}; // To store the shortcuts loaded from storage
 
+    // --- Make body focusable and focus it for immediate key capture ---
+    document.body.tabIndex = -1;
+    document.body.focus();
+    // --- End of focus enhancement ---
+
     // --- Function to handle navigation ---
     function navigateToShortcut(key, openInNewTab = false) {
       if (loadedShortcuts.hasOwnProperty(key)) {
