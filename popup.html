@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Quick Nav</title>
+  <meta charset="UTF-8">
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      width: 480px; /* Increased width for 3 columns */
+      min-height: 200px; /* Minimum height */
+      padding: 15px;
+      margin: 0;
+      background-color: #2d2d2d; /* Dark background */
+      color: #e0e0e0; /* Light text color */
+      box-sizing: border-box;
+    }
+    h3 {
+      margin-top: 0;
+      margin-bottom: 15px;
+      color: #ffffff;
+      font-size: 16px;
+      font-weight: 500;
+      text-align: center;
+      border-bottom: 1px solid #444;
+      padding-bottom: 10px;
+    }
+    #shortcuts-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr); /* 3 columns */
+      gap: 10px; /* Gap between items */
+      font-size: 13px;
+    }
+    .shortcut-item {
+      background-color: #3a3a3a; /* Slightly lighter dark for items */
+      padding: 8px 10px;
+      border-radius: 4px;
+      display: flex;
+      justify-content: space-between; /* Pushes name and key apart */
+      align-items: center;
+      cursor: default; /* Indicate it's not directly clickable, key press is action */
+      transition: background-color 0.2s ease;
+    }
+    .shortcut-item:hover {
+      background-color: #4a4a4a; /* Hover effect */
+    }
+    .shortcut-name {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis; /* Add ellipsis for long names */
+      margin-right: 8px; /* Space between name and key */
+    }
+    .shortcut-key {
+      font-weight: bold;
+      color: #70a1ff; /* A distinct color for the key */
+      background-color: #2d2d2d;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 12px;
+    }
+    .instructions {
+      font-size: 12px;
+      color: #999;
+      margin-top: 15px;
+      text-align: center;
+    }
+    /* Optional: Basic scrollbar styling for dark theme if content overflows */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #2d2d2d;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #555;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #666;
+    }
+  </style>
+</head>
+<body>
+  <h3>Quick Shortcuts</h3>
+  <div id="shortcuts-grid">
+    <!-- Shortcuts will be dynamically added here by popup.js -->
+  </div>
+  <div class="instructions">
+    Press a key to navigate.
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>
