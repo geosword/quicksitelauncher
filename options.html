@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Quick URL Navigator Settings</title>
+  <meta charset="UTF-8">
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #f0f0f0; /* Light gray background */
+      color: #333;
+      min-width: 500px;
+    }
+    .container {
+      background-color: #ffffff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #333;
+      font-size: 24px;
+      margin-top: 0;
+      margin-bottom: 20px;
+      border-bottom: 1px solid #ddd;
+      padding-bottom: 10px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+    }
+    th, td {
+      text-align: left;
+      padding: 10px 8px;
+      border-bottom: 1px solid #eee;
+      vertical-align: middle;
+    }
+    th {
+      background-color: #f7f7f7;
+      font-weight: 600;
+    }
+    td.actions-cell {
+      text-align: right;
+      white-space: nowrap;
+    }
+    .form-section {
+      margin-top: 30px;
+      padding-top: 20px;
+      border-top: 1px solid #ddd;
+    }
+    .form-section h2 {
+      font-size: 18px;
+      margin-top: 0;
+      margin-bottom: 15px;
+    }
+    .form-row {
+      display: flex;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .form-row label {
+      min-width: 60px; /* Label width */
+      margin-right: 10px;
+      font-weight: 500;
+    }
+    .form-row input[type="text"],
+    .form-row input[type="url"] {
+      flex-grow: 1;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    .form-row input[name="key"] {
+      flex-grow: 0;
+      width: 50px; /* Smaller width for key input */
+      margin-left: 10px;
+    }
+    button {
+      padding: 8px 15px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: background-color 0.2s ease;
+    }
+    .btn-primary {
+      background-color: #007bff;
+      color: white;
+      margin-left: 10px; /* Spacing for the main Add/Update button */
+    }
+    .btn-primary:hover {
+      background-color: #0056b3;
+    }
+    .btn-secondary {
+      background-color: #6c757d;
+      color: white;
+      margin-right: 5px;
+    }
+    .btn-secondary:hover {
+      background-color: #545b62;
+    }
+    .btn-danger {
+      background-color: #dc3545;
+      color: white;
+    }
+    .btn-danger:hover {
+      background-color: #b02a37;
+    }
+    #status-message {
+      margin-top: 10px;
+      padding: 10px;
+      border-radius: 4px;
+      display: none; /* Hidden by default */
+      text-align: center;
+    }
+    #status-message.success {
+      background-color: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    #status-message.error {
+      background-color: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Shortcut Settings</h1>
+
+    <h2>Existing Shortcuts</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Title</th>
+          <th>URL</th>
+          <th>Key</th>
+          <th class="actions-cell">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="shortcuts-table-body">
+        <!-- Shortcut rows will be inserted here by JavaScript -->
+      </tbody>
+    </table>
+
+    <div class="form-section">
+      <h2 id="form-title">Add New Shortcut</h2>
+      <form id="shortcut-form">
+        <div class="form-row">
+          <label for="url">URL:</label>
+          <input type="url" id="url" name="url" placeholder="https://example.com" required>
+        </div>
+        <div class="form-row">
+          <label for="title">Title:</label>
+          <input type="text" id="title" name="title" placeholder="e.g., My Favorite Site" required>
+        </div>
+        <div class="form-row">
+          <label for="key">Key:</label>
+          <input type="text" id="key" name="key" maxlength="1" placeholder="e.g., m" required>
+          <button type="submit" id="save-button" class="btn-primary">Add Shortcut</button>
+          <button type="button" id="cancel-edit-button" class="btn-secondary" style="display:none;">Cancel</button>
+        </div>
+      </form>
+      <div id="status-message"></div>
+    </div>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>
