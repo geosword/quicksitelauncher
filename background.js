@@ -4,13 +4,15 @@
 chrome.runtime.onInstalled.addListener((details) => {
     if (details.reason === "install") {
       console.log("Quick URL Navigator extension installed.");
-      // You can set up initial default shortcuts here if desired.
-      // For example, to add a default shortcut for 'g' to google.com:
-      // chrome.storage.sync.set({
-      //   urlShortcuts: { 'g': 'https://www.google.com' }
-      // }, () => {
-      //   console.log("Default shortcut for 'g' set.");
-      // });
+      // Set up initial default shortcuts
+      chrome.storage.sync.set({
+        urlShortcuts: {
+          'g': { name: 'Google', url: 'https://google.com' },
+          'm': { name: 'Mail', url: 'https://gmail.com' }
+        }
+      }, () => {
+        console.log("Default shortcuts for 'g' (Google) and 'm' (Mail) set.");
+      });
     } else if (details.reason === "update") {
       const newVersion = chrome.runtime.getManifest().version;
       console.log(`Quick URL Navigator extension updated to version ${newVersion}.`);

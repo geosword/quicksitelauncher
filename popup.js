@@ -6,7 +6,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Make body focusable and focus it for immediate key capture ---
     document.body.tabIndex = -1;
-    document.body.focus();
+    // Attempt to focus slightly after DOM is ready, to give the popup window a chance to fully appear and be focusable by the OS
+    setTimeout(() => {
+        window.focus(); // Attempt to focus the popup window itself
+        document.body.focus(); // Then focus the body within the popup
+        console.log("Attempted window and body focus after slight delay.");
+    }, 50); // 50ms delay, can be adjusted if issues persist
     // --- End of focus enhancement ---
 
     // --- Function to handle navigation ---
