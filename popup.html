@@ -9,7 +9,8 @@
       /* width: 480px; --- REMOVED, will be set by JS --- */
       min-height: 100px; /* Adjusted min-height, content will dictate actual */
       max-height: 450px; /* Add a max-height to prevent overly tall popups */
-      overflow-y: auto; /* Add scroll if content exceeds max-height */
+      overflow-y: hidden; /* Changed from auto to hidden for the body */
+      overflow-x: hidden; /* Also hide horizontal scroll on body, JS manages width */
       padding: 0; /* Changed padding to 0 as header/panes will manage it */
       margin: 0;
       background-color: #2d2d2d; /* Dark background */
@@ -48,12 +49,17 @@
 
     .pane {
       padding: 15px;
-      flex-grow: 1; /* Allow panes to fill available space */
-      overflow-y: auto; /* Scroll individual panes if their content overflows */
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #shortcuts-display-pane {
+      overflow: hidden;
     }
 
     #add-shortcut-pane {
-      display: none; /* Hidden by default */
+      overflow-y: auto;
     }
     #add-shortcut-pane .form-row {
       margin-bottom: 10px;
@@ -127,22 +133,23 @@
 
     /* Styles for shortcuts-display-pane */
     #shortcuts-grid {
-      display: flex; /* Changed from grid */
-      flex-direction: row; /* Columns side-by-side */
-      gap: 10px; /* Gap between columns */
-      overflow-x: auto; /* Allow horizontal scrolling for columns */
-      overflow-y: hidden; /* Prevent vertical scroll on the grid itself */
-      padding-bottom: 10px; /* Space for horizontal scrollbar if needed */
-      align-items: flex-start; /* Align columns at the top */
-      min-height: 50px; /* Ensure it has some height even if empty initially */
+      display: flex;
+      flex-direction: row;
+      gap: 10px;
+      overflow-x: auto;
+      overflow-y: auto;
+      padding-bottom: 10px;
+      align-items: flex-start;
+      min-height: 50px;
+      flex-grow: 1;
     }
 
     .shortcut-column {
       display: flex;
       flex-direction: column;
-      gap: 8px; /* Gap between items within a column */
-      width: 180px; /* Fixed width for each column */
-      flex-shrink: 0; /* Prevent columns from shrinking */
+      gap: 8px;
+      width: 180px;
+      flex-shrink: 0;
     }
 
     .shortcut-item {
@@ -154,11 +161,11 @@
       align-items: center;
       cursor: pointer;
       transition: background-color 0.2s ease;
-      width: 100%; /* Take full width of the column */
+      width: 100%;
       box-sizing: border-box;
     }
     .shortcut-item:hover {
-      background-color: #4a4a4a; /* Hover effect */
+      background-color: #4a4a4a;
     }
     .shortcut-name {
       white-space: nowrap;
@@ -175,7 +182,7 @@
       font-size: 12px;
     }
     .no-shortcuts {
-        grid-column: 1 / -1; /* Span all columns */
+        grid-column: 1 / -1;
         text-align: center;
         padding: 20px;
         color: #aaa;
@@ -185,6 +192,7 @@
       color: #999;
       margin-top: 15px;
       text-align: center;
+      flex-shrink: 0;
     }
     /* Optional: Basic scrollbar styling for dark theme if content overflows */
     ::-webkit-scrollbar {
