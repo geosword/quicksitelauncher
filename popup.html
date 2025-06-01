@@ -42,6 +42,7 @@
       font-weight: bold;
       cursor: pointer;
       padding: 0 5px;
+      line-height: 1; /* Ensures icons align better */
     }
     .header button:hover {
       color: #a0c0ff;
@@ -213,7 +214,10 @@
 <body>
   <div class="header">
     <h3 id="popup-title">Quick Shortcuts</h3>
-    <button id="toggle-add-pane-button" title="Add new shortcut (+)">+</button>
+    <div>
+      <button id="open-options-button" title="Open Settings">⚙️</button>
+      <button id="toggle-add-pane-button" title="Add new shortcut (+)">+</button>
+    </div>
   </div>
 
   <div id="shortcuts-display-pane" class="pane">

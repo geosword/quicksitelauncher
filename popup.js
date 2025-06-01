@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const cancelAddButton = document.getElementById('cancel-add-button');
     const popupStatusMessage = document.getElementById('popup-status-message');
     const keyValidationMessage = document.getElementById('key-validation-message');
+    const openOptionsButton = document.getElementById('open-options-button');
 
     let loadedShortcuts = {}; // To store the shortcuts loaded from storage
     let isAddPaneVisible = false;
@@ -119,6 +120,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Event listener for Cancel button in add pane ---
     cancelAddButton.addEventListener('click', switchToDisplayPane);
+
+    // --- Event listener for Open Options button ---
+    openOptionsButton.addEventListener('click', () => {
+        chrome.runtime.openOptionsPage();
+    });
 
     // --- Live Key Validation ---
     addKeyInput.addEventListener('input', () => {
