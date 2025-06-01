@@ -8,39 +8,153 @@
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       width: 480px; /* Increased width for 3 columns */
       min-height: 100px; /* Adjusted min-height, content will dictate actual */
-      max-height: 400px; /* Add a max-height to prevent overly tall popups */
+      max-height: 450px; /* Add a max-height to prevent overly tall popups */
       overflow-y: auto; /* Add scroll if content exceeds max-height */
-      padding: 15px;
+      padding: 0; /* Changed padding to 0 as header/panes will manage it */
       margin: 0;
       background-color: #2d2d2d; /* Dark background */
       color: #e0e0e0; /* Light text color */
       box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
     }
-    h3 {
-      margin-top: 0;
-      margin-bottom: 15px;
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 15px;
+      border-bottom: 1px solid #444;
+      background-color: #2d2d2d; /* Ensure header matches body bg */
+    }
+    .header h3 {
+      margin: 0;
       color: #ffffff;
       font-size: 16px;
       font-weight: 500;
-      text-align: center;
-      border-bottom: 1px solid #444;
-      padding-bottom: 10px;
     }
-    #shortcuts-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr); /* 3 columns */
-      gap: 10px; /* Gap between items */
+    .header button {
+      background: none;
+      border: none;
+      color: #70a1ff;
+      font-size: 24px; /* Larger for a clear "+" icon */
+      font-weight: bold;
+      cursor: pointer;
+      padding: 0 5px;
+    }
+    .header button:hover {
+      color: #a0c0ff;
+    }
+
+    .pane {
+      padding: 15px;
+      flex-grow: 1; /* Allow panes to fill available space */
+      overflow-y: auto; /* Scroll individual panes if their content overflows */
+    }
+
+    #add-shortcut-pane {
+      display: none; /* Hidden by default */
+    }
+    #add-shortcut-pane .form-row {
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+    }
+    #add-shortcut-pane label {
+      min-width: 50px;
+      margin-right: 10px;
       font-size: 13px;
     }
+    #add-shortcut-pane input[type="text"],
+    #add-shortcut-pane input[type="url"] {
+      flex-grow: 1;
+      padding: 6px 8px;
+      background-color: #3a3a3a;
+      border: 1px solid #555;
+      color: #e0e0e0;
+      border-radius: 3px;
+      font-size: 13px;
+    }
+    #add-shortcut-pane input[name="add-key"] {
+      width: 40px;
+      flex-grow: 0;
+      text-align: center;
+    }
+    #add-shortcut-pane .button-group {
+      margin-top: 15px;
+      display: flex;
+      justify-content: flex-end;
+    }
+    #add-shortcut-pane button {
+      padding: 6px 12px;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+      font-weight: 500;
+      font-size: 13px;
+      margin-left: 8px;
+    }
+    #add-shortcut-pane .btn-save {
+      background-color: #007bff;
+      color: white;
+    }
+    #add-shortcut-pane .btn-save:hover {
+      background-color: #0056b3;
+    }
+    #add-shortcut-pane .btn-cancel {
+      background-color: #6c757d;
+      color: white;
+    }
+    #add-shortcut-pane .btn-cancel:hover {
+      background-color: #545b62;
+    }
+     #popup-status-message {
+      margin-top: 10px;
+      padding: 8px;
+      border-radius: 3px;
+      font-size: 12px;
+      display: none; /* Hidden by default */
+      text-align: center;
+    }
+    #popup-status-message.success {
+      background-color: #28a745; /* Darker green for dark theme */
+      color: #e0e0e0;
+    }
+    #popup-status-message.error {
+      background-color: #dc3545; /* Darker red for dark theme */
+      color: #e0e0e0;
+    }
+
+    /* Styles for shortcuts-display-pane */
+    #shortcuts-grid {
+      display: flex; /* Changed from grid */
+      flex-direction: row; /* Columns side-by-side */
+      gap: 10px; /* Gap between columns */
+      overflow-x: auto; /* Allow horizontal scrolling for columns */
+      overflow-y: hidden; /* Prevent vertical scroll on the grid itself */
+      padding-bottom: 10px; /* Space for horizontal scrollbar if needed */
+      align-items: flex-start; /* Align columns at the top */
+      min-height: 50px; /* Ensure it has some height even if empty initially */
+    }
+
+    .shortcut-column {
+      display: flex;
+      flex-direction: column;
+      gap: 8px; /* Gap between items within a column */
+      width: 180px; /* Fixed width for each column */
+      flex-shrink: 0; /* Prevent columns from shrinking */
+    }
+
     .shortcut-item {
-      background-color: #3a3a3a; /* Slightly lighter dark for items */
+      background-color: #3a3a3a;
       padding: 8px 10px;
       border-radius: 4px;
       display: flex;
-      justify-content: space-between; /* Pushes name and key apart */
+      justify-content: space-between;
       align-items: center;
-      cursor: pointer; /* Indicate it's clickable */
+      cursor: pointer;
       transition: background-color 0.2s ease;
+      width: 100%; /* Take full width of the column */
+      box-sizing: border-box;
     }
     .shortcut-item:hover {
       background-color: #4a4a4a; /* Hover effect */
@@ -88,13 +202,43 @@
   </style>
 </head>
 <body>
-  <h3>Quick Shortcuts</h3>
-  <div id="shortcuts-grid">
-    <!-- Shortcuts will be dynamically loaded here by popup.js -->
+  <div class="header">
+    <h3 id="popup-title">Quick Shortcuts</h3>
+    <button id="toggle-add-pane-button" title="Add new shortcut (+)">+</button>
   </div>
-  <div class="instructions">
-    Press a key or click to navigate. Press Ctrl + key to open in a new tab.
+
+  <div id="shortcuts-display-pane" class="pane">
+    <div id="shortcuts-grid">
+      <!-- Shortcuts will be dynamically loaded here by popup.js -->
+    </div>
+    <div class="instructions">
+      Press a key or click to navigate. Press Ctrl + key to open in a new tab.
+    </div>
   </div>
+
+  <div id="add-shortcut-pane" class="pane">
+    <form id="add-shortcut-form">
+      <div class="form-row">
+        <label for="add-url">URL:</label>
+        <input type="url" id="add-url" name="add-url" readonly> <!-- Readonly as it's pre-filled -->
+      </div>
+      <div class="form-row">
+        <label for="add-title">Title:</label>
+        <input type="text" id="add-title" name="add-title" required>
+      </div>
+      <div class="form-row">
+        <label for="add-key">Key:</label>
+        <input type="text" id="add-key" name="add-key" maxlength="1" required>
+        <span id="key-validation-message" style="color: #ff6b6b; font-size: 11px; margin-left: 8px; flex-shrink: 0;"></span>
+      </div>
+      <div id="popup-status-message"></div>
+      <div class="button-group">
+        <button type="button" id="cancel-add-button" class="btn-cancel">Cancel</button>
+        <button type="submit" id="save-shortcut-button" class="btn-save">Save</button>
+      </div>
+    </form>
+  </div>
+
   <script src="popup.js"></script>
 </body>
 </html>
