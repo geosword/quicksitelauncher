@@ -1,4 +1,5 @@
 // popup.js
+import { saveOrUpdateShortcut } from './shared-utils.js'; // Import the shared function
 
 document.addEventListener('DOMContentLoaded', () => {
     const headerElement = document.querySelector('.header'); // Get the header element
@@ -140,13 +141,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // --- Handle Add Shortcut Form submission ---
-    addShortcutForm.addEventListener('submit', (event) => {
+    // --- Handle Add Shortcut Form submission (Refactored) ---
+    addShortcutForm.addEventListener('submit', async (event) => {
         event.preventDefault();
         const url = addUrlInput.value.trim();
         const title = addTitleInput.value.trim();
-        const newKey = addKeyInput.value.trim().toLowerCase();
+        const newKey = addKeyInput.value.trim(); // Will be lowercased by shared function
 
+        // Basic client-side check for empty fields, though shared function also validates
         if (!url || !title || !newKey) {
             showPopupStatus('URL, Title, and Key are required.', 'error');
             return;
@@ -155,30 +157,31 @@ document.addEventListener('DOMContentLoaded', () => {
             showPopupStatus('Key must be a single character.', 'error');
             return;
         }
+
+        saveShortcutButton.disabled = true; // Disable button during save operation
+
         try {
-            new URL(url); // Basic URL validation
-        } catch (_) {
-            showPopupStatus('Invalid URL format.', 'error');
-            return;
-        }
-
-        if (loadedShortcuts.hasOwnProperty(newKey)) {
-            showPopupStatus(`Key '${newKey}' is already in use. Submit anyway to overwrite, or choose another.`, 'error');
-            addKeyInput.focus();
-            return;
-        }
-
-        loadedShortcuts[newKey] = { name: title, url: url };
-        chrome.storage.sync.set({ urlShortcuts: loadedShortcuts }, () => {
-            if (chrome.runtime.lastError) {
-                showPopupStatus(`Error: ${chrome.runtime.lastError.message}`, 'error');
-                delete loadedShortcuts[newKey]; // Revert optimistic update
+            // For popup, we are always adding, so originalKey is null.
+            const result = await saveOrUpdateShortcut(newKey, title, url, null);
+            showPopupStatus(result.message, 'success');
+            loadedShortcuts = result.updatedShortcuts; // Update local copy
+            displayShortcuts(loadedShortcuts); // Refresh display
+            switchToDisplayPane();
+        } catch (error) {
+            showPopupStatus(error.message || 'Failed to save shortcut.', 'error');
+            // Potentially re-enable key input validation if key conflict was the issue
+            if (error.message && error.message.toLowerCase().includes("key") && error.message.toLowerCase().includes("in use")) {
+                keyValidationMessage.textContent = 'In use';
+                // Save button remains disabled from the live validation if key is still the same
             } else {
-                showPopupStatus('Shortcut added!', 'success');
-                displayShortcuts(loadedShortcuts); // Refresh display immediately
-                switchToDisplayPane();
+                 saveShortcutButton.disabled = false; // Re-enable on other errors
             }
-        });
+        } finally {
+            // Ensure button is re-enabled if it wasn't specifically disabled by key validation
+            if (keyValidationMessage.textContent !== 'In use' && keyValidationMessage.textContent !== '1 char only') {
+                 saveShortcutButton.disabled = false;
+            }
+        }
     });
 
     // --- Function to handle navigation (modified to be callable) ---
