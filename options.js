@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const formTitle = document.getElementById('form-title');
     const cancelEditButton = document.getElementById('cancel-edit-button');
     const statusMessage = document.getElementById('status-message');
+    const showPopupHeaderCheckbox = document.getElementById('show-popup-header');
 
     let editingKey = null; // To store the key of the shortcut being edited
 
@@ -173,6 +174,26 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
+    // --- Load Popup Settings ---
+    function loadPopupSettings() {
+        chrome.storage.sync.get('showPopupHeader', (data) => {
+            // Default to true (checked) if not set
+            showPopupHeaderCheckbox.checked = data.showPopupHeader === undefined ? true : data.showPopupHeader;
+        });
+    }
+
+    // --- Save Popup Settings ---
+    showPopupHeaderCheckbox.addEventListener('change', () => {
+        chrome.storage.sync.set({ showPopupHeader: showPopupHeaderCheckbox.checked }, () => {
+            if (chrome.runtime.lastError) {
+                showStatus('Error saving popup setting.', 'error');
+            } else {
+                showStatus('Popup setting saved.', 'success');
+            }
+        });
+    });
+
     // --- Initial load ---
     loadShortcuts();
-  });
+    loadPopupSettings();
+});

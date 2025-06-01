@@ -1,6 +1,7 @@
 // popup.js
 
 document.addEventListener('DOMContentLoaded', () => {
+    const headerElement = document.querySelector('.header'); // Get the header element
     const shortcutsGrid = document.getElementById('shortcuts-grid');
     const popupTitle = document.getElementById('popup-title');
     const toggleAddPaneButton = document.getElementById('toggle-add-pane-button');
@@ -17,6 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let loadedShortcuts = {}; // To store the shortcuts loaded from storage
     let isAddPaneVisible = false;
+    let showHeader = true; // Default to showing header
 
     const COLUMN_WIDTH = 180; // px
     const COLUMN_GAP = 10; // px
@@ -331,27 +333,47 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Listen for storage changes ---
     chrome.storage.onChanged.addListener((changes, namespace) => {
-      if (namespace === 'sync' && changes.urlShortcuts) {
-        loadedShortcuts = changes.urlShortcuts.newValue || {};
-        displayShortcuts(loadedShortcuts);
-        console.log("Shortcuts updated in popup due to storage change.");
-      }
+        if (namespace === 'sync') {
+            if (changes.urlShortcuts) {
+                loadedShortcuts = changes.urlShortcuts.newValue || {};
+                displayShortcuts(loadedShortcuts);
+                console.log("Shortcuts updated in popup due to storage change.");
+            }
+            if (changes.showPopupHeader) {
+                showHeader = changes.showPopupHeader.newValue === undefined ? true : changes.showPopupHeader.newValue;
+                applyHeaderVisibility();
+                console.log("Popup header visibility updated.");
+            }
+        }
     });
 
-    // --- Initial setup ---
-    loadAndDisplayShortcuts(); // Load first, which sets width, then set initial pane
-    switchToDisplayPane(); // Display pane by default, but width is already influenced by loaded data
+    // --- Function to apply header visibility ---
+    function applyHeaderVisibility() {
+        if (headerElement) {
+            headerElement.style.display = showHeader ? 'flex' : 'none';
+        }
+    }
 
-    function loadAndDisplayShortcuts() {
-        chrome.storage.sync.get('urlShortcuts', (data) => {
-            if (chrome.runtime.lastError) {
+    // --- Function to load settings (including header visibility) ---
+    function loadSettingsAndShortcuts() {
+        chrome.storage.sync.get(['urlShortcuts', 'showPopupHeader'], (data) => {
+            // Load header visibility setting
+            showHeader = data.showPopupHeader === undefined ? true : data.showPopupHeader;
+            applyHeaderVisibility();
+
+            // Load shortcuts
+            if (chrome.runtime.lastError && data.urlShortcuts === undefined) { // Check specific to urlShortcuts loading
                 console.error("Error loading shortcuts:", chrome.runtime.lastError.message);
                 shortcutsGrid.innerHTML = '<div class="no-shortcuts">Error loading shortcuts.</div>';
-                setPopupWidth(1); // Also set width here in case of error
+                setPopupWidth(1);
                 return;
             }
             loadedShortcuts = data.urlShortcuts || {};
-            displayShortcuts(loadedShortcuts); // This will now also set the width
+            displayShortcuts(loadedShortcuts);
         });
     }
+
+    // --- Initial setup ---
+    loadSettingsAndShortcuts(); // New function to load all settings and then shortcuts
+    switchToDisplayPane();
 });
