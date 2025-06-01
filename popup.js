@@ -26,6 +26,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const PANE_PADDING_HORIZONTAL = 15 * 2; // px (15px on each side)
     const MAX_COLUMNS_FOR_WIDTH_ADJUST = 3;
 
+    const FIXED_POPUP_WIDTH = (COLUMN_WIDTH * MAX_COLUMNS_FOR_WIDTH_ADJUST) + (COLUMN_GAP * (MAX_COLUMNS_FOR_WIDTH_ADJUST - 1)) + PANE_PADDING_HORIZONTAL;
+    document.body.style.width = `${FIXED_POPUP_WIDTH}px`;
+
     // --- Make body focusable and focus it for immediate key capture --- (if needed for display pane)
     document.body.tabIndex = -1;
     function focusBody() {
@@ -90,8 +93,8 @@ document.addEventListener('DOMContentLoaded', () => {
         saveShortcutButton.disabled = false;
 
         // Set a comfortable fixed width for the add pane
-        const addPaneWidth = COLUMN_WIDTH + PANE_PADDING_HORIZONTAL + 60; // A bit wider for the form
-        document.body.style.width = `${addPaneWidth}px`;
+        // const addPaneWidth = COLUMN_WIDTH + PANE_PADDING_HORIZONTAL + 60; // A bit wider for the form
+        // document.body.style.width = `${addPaneWidth}px`;
 
         chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
             if (tabs && tabs.length > 0) {
@@ -238,7 +241,7 @@ document.addEventListener('DOMContentLoaded', () => {
             noShortcutsMessage.style.textAlign = 'center';
             noShortcutsMessage.textContent = 'No shortcuts configured. Please set them up in the options page.';
             shortcutsGrid.appendChild(noShortcutsMessage);
-            setPopupWidth(1); // Default to 1 column width if no shortcuts
+            // setPopupWidth(1); // Default to 1 column width if no shortcuts
             return;
         }
 
@@ -300,7 +303,7 @@ document.addEventListener('DOMContentLoaded', () => {
              numRenderedColumns = 1; // if empty, conceptually 1 column width
         }
 
-        setPopupWidth(numRenderedColumns);
+        // setPopupWidth(numRenderedColumns);
     }
 
     // --- Listen for key presses within the popup ---
@@ -347,6 +350,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 applyHeaderVisibility();
                 console.log("Popup header visibility updated.");
             }
+            if (chrome.runtime.lastError && changes.urlShortcuts === undefined) { // Check specific to urlShortcuts loading
+                console.error("Error loading shortcuts:", chrome.runtime.lastError.message);
+                shortcutsGrid.innerHTML = '<div class="no-shortcuts">Error loading shortcuts.</div>';
+                // setPopupWidth(1);
+                return;
+            }
+            loadedShortcuts = changes.urlShortcuts.newValue || {};
         }
     });
 
@@ -368,7 +378,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (chrome.runtime.lastError && data.urlShortcuts === undefined) { // Check specific to urlShortcuts loading
                 console.error("Error loading shortcuts:", chrome.runtime.lastError.message);
                 shortcutsGrid.innerHTML = '<div class="no-shortcuts">Error loading shortcuts.</div>';
-                setPopupWidth(1);
+                // setPopupWidth(1);
                 return;
             }
             loadedShortcuts = data.urlShortcuts || {};
