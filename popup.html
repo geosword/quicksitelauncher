@@ -6,7 +6,7 @@
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      width: 480px; /* Increased width for 3 columns */
+      /* width: 480px; --- REMOVED, will be set by JS --- */
       min-height: 100px; /* Adjusted min-height, content will dictate actual */
       max-height: 450px; /* Add a max-height to prevent overly tall popups */
       overflow-y: auto; /* Add scroll if content exceeds max-height */
@@ -17,6 +17,7 @@
       box-sizing: border-box;
       display: flex;
       flex-direction: column;
+      transition: width 0.2s ease-in-out; /* Smooth width transition */
     }
     .header {
       display: flex;

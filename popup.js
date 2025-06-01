@@ -18,6 +18,11 @@ document.addEventListener('DOMContentLoaded', () => {
     let loadedShortcuts = {}; // To store the shortcuts loaded from storage
     let isAddPaneVisible = false;
 
+    const COLUMN_WIDTH = 180; // px
+    const COLUMN_GAP = 10; // px
+    const PANE_PADDING_HORIZONTAL = 15 * 2; // px (15px on each side)
+    const MAX_COLUMNS_FOR_WIDTH_ADJUST = 3;
+
     // --- Make body focusable and focus it for immediate key capture --- (if needed for display pane)
     document.body.tabIndex = -1;
     function focusBody() {
@@ -38,7 +43,22 @@ document.addEventListener('DOMContentLoaded', () => {
         }, duration);
     }
 
-    // --- Function to switch between panes ---
+    // --- Function to set popup body width ---
+    function setPopupWidth(numColumns) {
+        let targetWidth;
+        if (numColumns <= 0) numColumns = 1; // Should not happen with current logic, but safety
+
+        if (numColumns === 1) {
+            targetWidth = COLUMN_WIDTH + PANE_PADDING_HORIZONTAL;
+        } else if (numColumns === 2) {
+            targetWidth = (COLUMN_WIDTH * 2) + COLUMN_GAP + PANE_PADDING_HORIZONTAL;
+        } else { // 3 or more columns
+            targetWidth = (COLUMN_WIDTH * MAX_COLUMNS_FOR_WIDTH_ADJUST) + (COLUMN_GAP * (MAX_COLUMNS_FOR_WIDTH_ADJUST - 1)) + PANE_PADDING_HORIZONTAL;
+        }
+        document.body.style.width = `${targetWidth}px`;
+    }
+
+    // --- Function to switch between panes (modified) ---
     function switchToDisplayPane() {
         shortcutsDisplayPane.style.display = 'block';
         addShortcutPane.style.display = 'none';
@@ -46,24 +66,30 @@ document.addEventListener('DOMContentLoaded', () => {
         toggleAddPaneButton.textContent = '+';
         toggleAddPaneButton.title = 'Add new shortcut (+)';
         isAddPaneVisible = false;
-        addShortcutForm.reset(); // Reset form when switching away
+        addShortcutForm.reset();
         keyValidationMessage.textContent = '';
         saveShortcutButton.disabled = false;
-        popupStatusMessage.style.display = 'none'; // Hide status message
-        focusBody(); // Refocus body for keyboard navigation of shortcuts
+        popupStatusMessage.style.display = 'none';
+        focusBody();
+        // Width will be set by displayShortcuts after data is loaded/re-rendered
+        // For an immediate switch back, we might need to re-calculate or store last column count
+        // For now, let loadAndDisplayShortcuts handle it if called after this.
     }
 
     function switchToAddPane() {
         shortcutsDisplayPane.style.display = 'none';
         addShortcutPane.style.display = 'block';
         popupTitle.textContent = 'Add New Shortcut';
-        toggleAddPaneButton.textContent = '‹'; // Or a back arrow/cancel icon
+        toggleAddPaneButton.textContent = '‹';
         toggleAddPaneButton.title = 'Cancel add shortcut (Backspace)';
         isAddPaneVisible = true;
         keyValidationMessage.textContent = '';
         saveShortcutButton.disabled = false;
 
-        // Pre-fill form with current tab's URL and Title
+        // Set a comfortable fixed width for the add pane
+        const addPaneWidth = COLUMN_WIDTH + PANE_PADDING_HORIZONTAL + 60; // A bit wider for the form
+        document.body.style.width = `${addPaneWidth}px`;
+
         chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
             if (tabs && tabs.length > 0) {
                 const currentTab = tabs[0];
@@ -73,9 +99,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (currentTab.title) {
                     addTitleInput.value = currentTab.title;
                 }
-                addKeyInput.focus(); // Focus the key input field
+                addKeyInput.focus();
             } else {
-                addKeyInput.focus(); // Fallback focus if tab info not available
+                addKeyInput.focus();
             }
         });
     }
@@ -195,25 +221,23 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    // --- Function to display shortcuts in the grid (Modified for columns and sorting) ---
+    // --- Function to display shortcuts in the grid (Modified for width adjustment) ---
     function displayShortcuts(shortcuts) {
-        shortcutsGrid.innerHTML = ''; // Clear any existing items
+        shortcutsGrid.innerHTML = '';
+        let numRenderedColumns = 0;
 
         if (!shortcuts || Object.keys(shortcuts).length === 0) {
             const noShortcutsMessage = document.createElement('div');
             noShortcutsMessage.className = 'no-shortcuts';
-            // Ensure it spans if the grid is flex (it won't directly span, but we can make it take full width)
             noShortcutsMessage.style.width = '100%';
             noShortcutsMessage.style.textAlign = 'center';
             noShortcutsMessage.textContent = 'No shortcuts configured. Please set them up in the options page.';
             shortcutsGrid.appendChild(noShortcutsMessage);
+            setPopupWidth(1); // Default to 1 column width if no shortcuts
             return;
         }
 
-        // Convert shortcuts object to an array of [key, value] pairs for sorting
         const shortcutsArray = Object.entries(shortcuts);
-
-        // Custom sort: numbers first (numerically), then strings (by name/title alphabetically)
         shortcutsArray.sort(([keyA, valueA], [keyB, valueB]) => {
             const isNumA = /^\d+$/.test(keyA);
             const isNumB = /^\d+$/.test(keyB);
@@ -237,34 +261,41 @@ document.addEventListener('DOMContentLoaded', () => {
         const ITEMS_PER_COLUMN = 8;
         let currentColumn = null;
 
-        shortcutsArray.forEach(([key, shortcutData], index) => {
-            if (index % ITEMS_PER_COLUMN === 0) {
-                currentColumn = document.createElement('div');
-                currentColumn.className = 'shortcut-column';
-                shortcutsGrid.appendChild(currentColumn);
-            }
+        if (shortcutsArray.length > 0) {
+            shortcutsArray.forEach(([key, shortcutData], index) => {
+                if (index % ITEMS_PER_COLUMN === 0) {
+                    currentColumn = document.createElement('div');
+                    currentColumn.className = 'shortcut-column';
+                    shortcutsGrid.appendChild(currentColumn);
+                    numRenderedColumns++;
+                }
 
-            const itemDiv = document.createElement('div');
-            itemDiv.className = 'shortcut-item';
-            itemDiv.dataset.shortcutKey = key;
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'shortcut-item';
+                itemDiv.dataset.shortcutKey = key;
 
-            const nameSpan = document.createElement('span');
-            nameSpan.className = 'shortcut-name';
-            nameSpan.textContent = shortcutData.name || 'Unnamed Shortcut';
-            nameSpan.title = `${shortcutData.name || 'Unnamed'} (${shortcutData.url})`;
+                const nameSpan = document.createElement('span');
+                nameSpan.className = 'shortcut-name';
+                nameSpan.textContent = shortcutData.name || 'Unnamed Shortcut';
+                nameSpan.title = `${shortcutData.name || 'Unnamed'} (${shortcutData.url})`;
 
-            const keySpan = document.createElement('span');
-            keySpan.className = 'shortcut-key';
-            keySpan.textContent = key;
+                const keySpan = document.createElement('span');
+                keySpan.className = 'shortcut-key';
+                keySpan.textContent = key;
 
-            itemDiv.appendChild(nameSpan);
-            itemDiv.appendChild(keySpan);
-            currentColumn.appendChild(itemDiv);
+                itemDiv.appendChild(nameSpan);
+                itemDiv.appendChild(keySpan);
+                currentColumn.appendChild(itemDiv);
 
-            itemDiv.addEventListener('click', () => {
-                navigateToShortcut(itemDiv.dataset.shortcutKey, false);
+                itemDiv.addEventListener('click', () => {
+                    navigateToShortcut(itemDiv.dataset.shortcutKey, false);
+                });
             });
-        });
+        } else {
+             numRenderedColumns = 1; // if empty, conceptually 1 column width
+        }
+
+        setPopupWidth(numRenderedColumns);
     }
 
     // --- Listen for key presses within the popup ---
@@ -308,18 +339,19 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // --- Initial setup ---
-    switchToDisplayPane(); // Start with the display pane
-    loadAndDisplayShortcuts(); // Initial load of shortcuts
+    loadAndDisplayShortcuts(); // Load first, which sets width, then set initial pane
+    switchToDisplayPane(); // Display pane by default, but width is already influenced by loaded data
 
     function loadAndDisplayShortcuts() {
         chrome.storage.sync.get('urlShortcuts', (data) => {
             if (chrome.runtime.lastError) {
                 console.error("Error loading shortcuts:", chrome.runtime.lastError.message);
                 shortcutsGrid.innerHTML = '<div class="no-shortcuts">Error loading shortcuts.</div>';
+                setPopupWidth(1); // Also set width here in case of error
                 return;
             }
             loadedShortcuts = data.urlShortcuts || {};
-            displayShortcuts(loadedShortcuts);
+            displayShortcuts(loadedShortcuts); // This will now also set the width
         });
     }
 });
