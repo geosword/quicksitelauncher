@@ -18,6 +18,9 @@ export async function saveOrUpdateShortcut(newKey, name, url, originalKey = null
     if (newKey.length !== 1) {
         return Promise.reject({ success: false, message: 'Key must be a single character.' });
     }
+    if (!/^[a-z0-9]$/.test(newKey)) {
+        return Promise.reject({ success: false, message: 'Key must be a letter (a-z) or a number (0-9).' });
+    }
     try {
         new URL(url); // Basic URL validation
     } catch (_) {
