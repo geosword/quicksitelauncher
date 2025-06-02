@@ -254,15 +254,15 @@ document.addEventListener('DOMContentLoaded', () => {
             if (isNumA && isNumB) {
                 return parseInt(keyA, 10) - parseInt(keyB, 10); // Sort numbers numerically
             } else if (isNumA) {
-                return -1; // Numbers come before strings
+                return -1; // Numbers come before non-numbers
             } else if (isNumB) {
-                return 1; // Strings come after numbers
+                return 1;  // Non-numbers come after numbers
             } else {
-                // Sort by name (title) alphabetically, case-insensitive
-                const nameA = (valueA.name || '').toLowerCase();
-                const nameB = (valueB.name || '').toLowerCase();
-                if (nameA < nameB) return -1;
-                if (nameA > nameB) return 1;
+                // Both are non-numbers, sort by key alphabetically, case-insensitive
+                const lowerKeyA = keyA.toLowerCase();
+                const lowerKeyB = keyB.toLowerCase();
+                if (lowerKeyA < lowerKeyB) return -1;
+                if (lowerKeyA > lowerKeyB) return 1;
                 return 0;
             }
         });
