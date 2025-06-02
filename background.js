@@ -8,10 +8,17 @@ chrome.runtime.onInstalled.addListener((details) => {
       chrome.storage.sync.set({
         urlShortcuts: {
           'g': { name: 'Google', url: 'https://google.com' },
-          'm': { name: 'Mail', url: 'https://gmail.com' }
+          'm': { name: 'Mail', url: 'https://gmail.com' },
+          'c': { name: 'ChatGPT', url: 'https://chatgpt.com' },
+          'b': { name: 'Bubble', url: 'https://bubble.io' },
+          'i': { name: 'Airtable', url: 'https://airtable.com' },
+          'a': { name: 'Ars Technica', url: 'https://arstechnica.com' },
+          'y': { name: 'YouTube', url: 'https://youtube.com' },
+          's': { name: 'Stockport Grammar', url: 'https://stockportgrammar.co.uk' },
+          '1': { name: 'OpenAI', url: 'https://openai.com' }
         }
       }, () => {
-        console.log("Default shortcuts for 'g' (Google) and 'm' (Mail) set.");
+        console.log("Default shortcuts set (including new additions).");
       });
     } else if (details.reason === "update") {
       const newVersion = chrome.runtime.getManifest().version;

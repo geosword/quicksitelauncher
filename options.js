@@ -1,4 +1,6 @@
 // options.js
+import { saveOrUpdateShortcut } from './shared-utils.js'; // Import the shared function
+
 document.addEventListener('DOMContentLoaded', () => {
     const shortcutsTableBody = document.getElementById('shortcuts-table-body');
     const shortcutForm = document.getElementById('shortcut-form');
@@ -9,13 +11,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const formTitle = document.getElementById('form-title');
     const cancelEditButton = document.getElementById('cancel-edit-button');
     const statusMessage = document.getElementById('status-message');
+    const showPopupHeaderCheckbox = document.getElementById('show-popup-header');
 
-    let editingKey = null; // To store the key of the shortcut being edited
+    let editingKey = null; // This is our originalKey when in edit mode
 
     // --- Utility to show status messages ---
     function showStatus(message, type = 'success', duration = 3000) {
       statusMessage.textContent = message;
-      statusMessage.className = type; // 'success' or 'error'
+      statusMessage.className = type;
       statusMessage.style.display = 'block';
       setTimeout(() => {
         statusMessage.style.display = 'none';
@@ -26,7 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function loadShortcuts() {
       chrome.storage.sync.get('urlShortcuts', (data) => {
         const shortcuts = data.urlShortcuts || {};
-        shortcutsTableBody.innerHTML = ''; // Clear existing rows
+        shortcutsTableBody.innerHTML = '';
 
         if (Object.keys(shortcuts).length === 0) {
           const row = shortcutsTableBody.insertRow();
@@ -36,27 +39,33 @@ document.addEventListener('DOMContentLoaded', () => {
           cell.style.textAlign = 'center';
           return;
         }
-
-        // Sort keys for consistent display, or use Object.entries if order from storage is preferred
-        const sortedKeys = Object.keys(shortcuts).sort();
+        const sortedKeys = Object.keys(shortcuts).sort((a, b) => {
+            const isNumA = /^\d+$/.test(a);
+            const isNumB = /^\d+$/.test(b);
+            if (isNumA && isNumB) return parseInt(a, 10) - parseInt(b, 10);
+            if (isNumA) return -1;
+            if (isNumB) return 1;
+            // Fallback to name sort if not numeric or mixed, or implement more complex sort as in popup if needed
+            const nameA = (shortcuts[a].name || '').toLowerCase();
+            const nameB = (shortcuts[b].name || '').toLowerCase();
+            if (nameA < nameB) return -1;
+            if (nameA > nameB) return 1;
+            return 0;
+        });
 
         for (const key of sortedKeys) {
           const shortcut = shortcuts[key];
           const row = shortcutsTableBody.insertRow();
-
-          row.insertCell().textContent = shortcut.name || 'N/A'; // Display name
+          row.insertCell().textContent = shortcut.name || 'N/A';
           row.insertCell().textContent = shortcut.url;
           row.insertCell().textContent = key;
-
           const actionsCell = row.insertCell();
           actionsCell.className = 'actions-cell';
-
           const editButton = document.createElement('button');
           editButton.textContent = 'Edit';
           editButton.className = 'btn-secondary';
           editButton.addEventListener('click', () => populateFormForEdit(key, shortcut));
           actionsCell.appendChild(editButton);
-
           const deleteButton = document.createElement('button');
           deleteButton.textContent = 'Delete';
           deleteButton.className = 'btn-danger';
@@ -69,15 +78,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Populate form for editing a shortcut ---
     function populateFormForEdit(key, shortcut) {
-      editingKey = key;
+      editingKey = key; // This is the originalKey
       urlInput.value = shortcut.url;
       titleInput.value = shortcut.name || '';
       keyInput.value = key;
-
       formTitle.textContent = 'Edit Shortcut';
       saveButton.textContent = 'Update Shortcut';
       cancelEditButton.style.display = 'inline-block';
-      keyInput.focus(); // Or urlInput.focus()
+      urlInput.focus();
     }
 
     // --- Reset form to "Add New" mode ---
@@ -89,58 +97,25 @@ document.addEventListener('DOMContentLoaded', () => {
       cancelEditButton.style.display = 'none';
     }
 
-    // --- Handle form submission (Add or Update) ---
-    shortcutForm.addEventListener('submit', (event) => {
+    // --- Handle form submission (Add or Update) (Refactored) ---
+    shortcutForm.addEventListener('submit', async (event) => {
       event.preventDefault();
       const url = urlInput.value.trim();
       const title = titleInput.value.trim();
-      const newKey = keyInput.value.trim().toLowerCase();
+      const newKey = keyInput.value.trim(); // Will be lowercased by shared function
 
-      if (!url || !title || !newKey) {
-        showStatus('All fields (URL, Title, Key) are required.', 'error');
-        return;
-      }
-      if (newKey.length !== 1) {
-        showStatus('Key must be a single character.', 'error');
-        return;
-      }
-      // Basic URL validation (can be more robust)
+      saveButton.disabled = true;
+
       try {
-        new URL(url);
-      } catch (_) {
-        showStatus('Please enter a valid URL (e.g., https://example.com).', 'error');
-        return;
+        const result = await saveOrUpdateShortcut(newKey, title, url, editingKey);
+        showStatus(result.message, 'success');
+        resetForm();
+        loadShortcuts(); // Reload to show changes
+      } catch (error) {
+        showStatus(error.message || 'Failed to save shortcut.', 'error');
+      } finally {
+        saveButton.disabled = false;
       }
-
-
-      chrome.storage.sync.get('urlShortcuts', (data) => {
-        let shortcuts = data.urlShortcuts || {};
-
-        // Check if the new key (if different from editingKey) is already in use by another shortcut
-        if (newKey !== editingKey && shortcuts.hasOwnProperty(newKey)) {
-          showStatus(`Key '${newKey}' is already in use. Please choose a different key.`, 'error');
-          return;
-        }
-
-        // If editing and the key has changed, remove the old entry
-        if (editingKey && editingKey !== newKey) {
-          delete shortcuts[editingKey];
-        }
-        // If just editing (key hasn't changed), the old entry will be overwritten
-        // If adding a new shortcut, editingKey is null
-
-        shortcuts[newKey] = { name: title, url: url };
-
-        chrome.storage.sync.set({ urlShortcuts: shortcuts }, () => {
-          if (chrome.runtime.lastError) {
-            showStatus(`Error saving shortcut: ${chrome.runtime.lastError.message}`, 'error');
-          } else {
-            showStatus(editingKey ? 'Shortcut updated successfully!' : 'Shortcut added successfully!', 'success');
-            resetForm();
-            loadShortcuts();
-          }
-        });
-      });
     });
 
     // --- Handle cancel edit button ---
@@ -148,7 +123,7 @@ document.addEventListener('DOMContentLoaded', () => {
       resetForm();
     });
 
-    // --- Delete a shortcut ---
+    // --- Delete a shortcut (remains mostly the same, interacts directly with storage) ---
     function deleteShortcut(keyToDelete) {
       if (!confirm(`Are you sure you want to delete the shortcut for key '${keyToDelete}'?`)) {
         return;
@@ -162,7 +137,6 @@ document.addEventListener('DOMContentLoaded', () => {
               showStatus(`Error deleting shortcut: ${chrome.runtime.lastError.message}`, 'error');
             } else {
               showStatus('Shortcut deleted successfully!', 'success');
-              // If the deleted shortcut was being edited, reset the form
               if (editingKey === keyToDelete) {
                   resetForm();
               }
@@ -173,6 +147,25 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
+    // --- Load Popup Settings ---
+    function loadPopupSettings() {
+        chrome.storage.sync.get('showPopupHeader', (data) => {
+            showPopupHeaderCheckbox.checked = data.showPopupHeader === undefined ? true : data.showPopupHeader;
+        });
+    }
+
+    // --- Save Popup Settings ---
+    showPopupHeaderCheckbox.addEventListener('change', () => {
+        chrome.storage.sync.set({ showPopupHeader: showPopupHeaderCheckbox.checked }, () => {
+            if (chrome.runtime.lastError) {
+                showStatus('Error saving popup setting.', 'error');
+            } else {
+                showStatus('Popup setting saved.', 'success');
+            }
+        });
+    });
+
     // --- Initial load ---
     loadShortcuts();
-  });
+    loadPopupSettings();
+});
