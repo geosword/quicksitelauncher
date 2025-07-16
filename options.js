@@ -12,6 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const cancelEditButton = document.getElementById('cancel-edit-button');
     const statusMessage = document.getElementById('status-message');
     const showPopupHeaderCheckbox = document.getElementById('show-popup-header');
+    const switchToTabIfOpenCheckbox = document.getElementById('switch-to-tab-if-open');
 
     let editingKey = null; // This is our originalKey when in edit mode
 
@@ -149,8 +150,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Load Popup Settings ---
     function loadPopupSettings() {
-        chrome.storage.sync.get('showPopupHeader', (data) => {
+        chrome.storage.sync.get(['showPopupHeader', 'switchToTabIfOpen'], (data) => {
             showPopupHeaderCheckbox.checked = data.showPopupHeader === undefined ? true : data.showPopupHeader;
+            switchToTabIfOpenCheckbox.checked = data.switchToTabIfOpen === undefined ? true : data.switchToTabIfOpen;
         });
     }
 
@@ -161,6 +163,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 showStatus('Error saving popup setting.', 'error');
             } else {
                 showStatus('Popup setting saved.', 'success');
+            }
+        });
+    });
+
+    switchToTabIfOpenCheckbox.addEventListener('change', () => {
+        chrome.storage.sync.set({ switchToTabIfOpen: switchToTabIfOpenCheckbox.checked }, () => {
+            if (chrome.runtime.lastError) {
+                showStatus('Error saving "Switch to tab if already open" setting.', 'error');
+            } else {
+                showStatus('"Switch to tab if already open" setting saved.', 'success');
             }
         });
     });

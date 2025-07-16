@@ -49,27 +49,75 @@ chrome.runtime.onInstalled.addListener((details) => {
       const targetUrl = request.url;
       if (targetUrl) {
         console.log(`Navigation request received for URL: ${targetUrl}`);
-        // Find the active tab in the current window
-        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-          if (tabs && tabs.length > 0) {
-            const activeTab = tabs[0];
-            // Update the URL of the active tab
-            chrome.tabs.update(activeTab.id, { url: targetUrl }, () => {
-              if (chrome.runtime.lastError) {
-                console.error(`Error navigating tab: ${chrome.runtime.lastError.message}`);
-                sendResponse({ success: false, error: chrome.runtime.lastError.message });
+        // --- Switch to tab if already open logic ---
+        // Helper to extract domain from a URL
+        /**
+         * Extracts the domain (hostname) from a URL string.
+         * @param {string} url - The URL to parse.
+         * @returns {string|null} The hostname, or null if invalid.
+         */
+        function getDomain(url) {
+          try {
+            return new URL(url).hostname;
+          } catch (e) {
+            return null;
+          }
+        }
+
+        // Check the setting before proceeding
+        chrome.storage.sync.get('switchToTabIfOpen', (data) => {
+          const switchToTabIfOpen = data.switchToTabIfOpen === undefined ? true : data.switchToTabIfOpen;
+          if (switchToTabIfOpen) {
+            const targetDomain = getDomain(targetUrl);
+            if (!targetDomain) {
+              proceedWithNavigation();
+              return;
+            }
+            // Query all tabs to find a matching domain
+            chrome.tabs.query({}, (tabs) => {
+              const matchingTab = tabs.find(tab => {
+                const tabDomain = getDomain(tab.url);
+                return tabDomain === targetDomain;
+              });
+              if (matchingTab) {
+                // Switch to the matching tab and focus its window
+                chrome.tabs.update(matchingTab.id, { active: true }, () => {
+                  chrome.windows.update(matchingTab.windowId, { focused: true }, () => {
+                    sendResponse({ success: true, switched: true, tabId: matchingTab.id });
+                  });
+                });
               } else {
-                console.log(`Successfully navigated tab ${activeTab.id} to ${targetUrl}`);
-                sendResponse({ success: true });
+                // No matching tab, proceed as usual
+                proceedWithNavigation();
               }
             });
           } else {
-            console.warn("No active tab found to navigate.");
-            sendResponse({ success: false, error: "No active tab found." });
+            // Feature disabled, proceed as usual
+            proceedWithNavigation();
           }
         });
+
+        // Helper to perform the default navigation (update active tab)
+        function proceedWithNavigation() {
+          chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+            if (tabs && tabs.length > 0) {
+              const activeTab = tabs[0];
+              chrome.tabs.update(activeTab.id, { url: targetUrl }, () => {
+                if (chrome.runtime.lastError) {
+                  console.error(`Error navigating tab: ${chrome.runtime.lastError.message}`);
+                  sendResponse({ success: false, error: chrome.runtime.lastError.message });
+                } else {
+                  console.log(`Successfully navigated tab ${activeTab.id} to ${targetUrl}`);
+                  sendResponse({ success: true, switched: false });
+                }
+              });
+            } else {
+              console.warn("No active tab found to navigate.");
+              sendResponse({ success: false, error: "No active tab found." });
+            }
+          });
+        }
         // Return true to indicate that sendResponse will be called asynchronously.
-        // This is crucial for Manifest V3 service workers when dealing with async operations 4.
         return true;
       } else {
         console.warn("Navigation request received without a URL.");
