@@ -1,6 +1,19 @@
 // popup.js
 import { saveOrUpdateShortcut } from './shared-utils.js'; // Import the shared function
 
+/**
+ * Extracts the domain (hostname) from a URL string.
+ * @param {string} url - The URL to parse.
+ * @returns {string|null} The hostname, or null if invalid.
+ */
+function getDomain(url) {
+    try {
+        return new URL(url).hostname;
+    } catch (e) {
+        return null;
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     const headerElement = document.querySelector('.header'); // Get the header element
     const shortcutsGrid = document.getElementById('shortcuts-grid');
@@ -170,7 +183,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const result = await saveOrUpdateShortcut(newKey, title, url, null);
             showPopupStatus(result.message, 'success');
             loadedShortcuts = result.updatedShortcuts; // Update local copy
-            displayShortcuts(loadedShortcuts); // Refresh display
+            refreshShortcutsDisplay();
             switchToDisplayPane();
         } catch (error) {
             showPopupStatus(error.message || 'Failed to save shortcut.', 'error');
@@ -231,8 +244,22 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
+    // --- Refresh display: query tabs, build open domains set, then render ---
+    function refreshShortcutsDisplay() {
+        chrome.tabs.query({}, (tabs) => {
+            const openTabDomains = new Set();
+            for (const tab of tabs) {
+                if (tab.url) {
+                    const domain = getDomain(tab.url);
+                    if (domain) openTabDomains.add(domain);
+                }
+            }
+            displayShortcuts(loadedShortcuts, openTabDomains);
+        });
+    }
+
     // --- Function to display shortcuts in the grid (Modified for width adjustment) ---
-    function displayShortcuts(shortcuts) {
+    function displayShortcuts(shortcuts, openTabDomains = new Set()) {
         shortcutsGrid.innerHTML = '';
         let numRenderedColumns = 0;
 
@@ -288,12 +315,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 nameSpan.textContent = shortcutData.name || 'Unnamed Shortcut';
                 nameSpan.title = `${shortcutData.name || 'Unnamed'} (${shortcutData.url})`;
 
+                const domain = getDomain(shortcutData.url);
+                const isOpen = domain && openTabDomains.has(domain);
+
                 const keySpan = document.createElement('span');
                 keySpan.className = 'shortcut-key';
                 keySpan.textContent = key;
 
                 itemDiv.appendChild(nameSpan);
                 itemDiv.appendChild(keySpan);
+                if (isOpen) {
+                    const indicator = document.createElement('span');
+                    indicator.className = 'shortcut-open-indicator';
+                    indicator.setAttribute('aria-label', 'Open in a tab');
+                    indicator.textContent = '👍';
+                    itemDiv.appendChild(indicator);
+                }
                 currentColumn.appendChild(itemDiv);
 
                 itemDiv.addEventListener('click', () => {
@@ -341,7 +378,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (namespace === 'sync') {
             if (changes.urlShortcuts) {
                 loadedShortcuts = changes.urlShortcuts.newValue || {};
-                displayShortcuts(loadedShortcuts);
+                refreshShortcutsDisplay();
                 console.log("Shortcuts updated in popup due to storage change.");
             }
             if (changes.showPopupHeader) {
@@ -379,7 +416,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
             loadedShortcuts = data.urlShortcuts || {};
-            displayShortcuts(loadedShortcuts);
+            refreshShortcutsDisplay();
         });
     }
 
